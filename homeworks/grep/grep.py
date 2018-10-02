@@ -17,10 +17,11 @@ def grep(lines, params):
     lines = [x.strip() for x in lines]            #Входные строки
     passed_lines = {}                             #Строки прошедшие проверку
     passed_lines_inverted = {}                    #Строки _НЕ_ прошедшие проверку
+    all_lines = {}
     for i,item in enumerate(lines,1):
         passed_lines[i] = item
         passed_lines_inverted[i] = item           #Заполняем словарь - ключ это номер строки с 1, значение это сама строка.
-        all_lines = item                          #Сохраняем все строки для context
+        all_lines[i] = item                       #Сохраняем все строки для context
 
     i = 1
     for line in lines:                            #Поиск по регулярке подходящих строк
@@ -57,23 +58,39 @@ def grep(lines, params):
             for _,item in enumerate(passed_lines):
                 passed_lines[item] = \
                 str(item) + separator + passed_lines[item]
-                all_lines =  \
-                str(item) + separator + passed_lines[item]
+                all_lines[item] =  \
+                str(item) + separator + all_lines[item]
 
         elif params.context > 0:                                                            #C>0
-            if params.after_context == 0 and params.before_context == 0:                    #C>0,A=0,B=0
+            if params.after_context == 0 and params.before_context == 0:                    #C>0
                 before_context = params.context
                 after_context = params.context
-            elif params.after_context !=0 and params.before_context == 0:                   #C>0,A>0,B=0
+            elif params.after_context != 0 and params.before_context == 0:                   #C>0,A>0
                 before_context = params.context
                 after_context = params.after_context
-            elif params.after_context !=0 and params.before_context == 0:                   #C>0,A=0,B>0
+            elif params.after_context != 0 and params.before_context == 0:                   #C>0,B>0
                 before_context = params.before_context
-                after_context = params.context
-        #elif params.context == 0:
+                after_context = params.context            
+        elif params.context == 0:                                                           #C=0
+            if params.after_context != 0 and params.before_context == 0:                    #A>0
+                before_context = 0
+                after_context = params.after_context
+            elif params.after_context == 0 and params.before_context != 0:                   #B>0
+                before_context = params.before_context
+                after_context = 0
+            elif params.after_context != 0 and params.before_context != 0:                   #A>0,B>0
+                before_context = params.before_context
+                after_context = params.after_context
         else:
             for _,item in enumerate(passed_lines):
                 output(passed_lines[item])           #Вывод строк
+    output(passed_lines)
+    output(all_lines)
+    array_of_magic_numbers = [x for x in all_lines.keys]
+    output(array_of_magic_numbers)
+
+
+
 #------------------------------------------------------------------
 def parse_args(args):
     parser = argparse.ArgumentParser(description='This is a simple grep on python')
