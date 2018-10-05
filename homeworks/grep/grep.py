@@ -7,6 +7,10 @@ import re
 def output(line):
     print(line)
 
+def print_with_context(before,after,all_lines):
+    print(before,after,all_lines)
+
+
 
 def grep(lines, params):
 
@@ -55,8 +59,10 @@ def grep(lines, params):
             or params.before_context \
             or params.after_context > 0:                                           #Если есть context то меняем логику
                 for _,item in enumerate(all_lines):
-                    all_lines[item] =  \
-                    str(item) + '-' + all_lines[item]
+                    if all_lines[item] in passed_lines.values():
+                        all_lines[item] = str(item) + ':' + all_lines[item]     
+                    else:
+                        all_lines[item] = str(item) + '-' + all_lines[item]
                 for _,item in enumerate(passed_lines):
                     passed_lines[item] =  \
                     str(item) + separator + passed_lines[item]               
@@ -81,20 +87,16 @@ def grep(lines, params):
             else:                                                                            #C>0,B>0,A>0 == b,a
                 before_context = params.before_context
                 after_context = params.after_context
-                print(before_context,after_context)                        
+            print_with_context(before_context,after_context,all_lines) 
+                                    
         elif params.context == 0:                                                           #C=0
             before_context = params.before_context
-            after_context = params.after_context            
-            print(before_context,after_context,passed_lines,passed_lines_inverted,all_lines)  
-        else:
-            for _,item in enumerate(passed_lines):
-                output(passed_lines[item])           #Вывод строк
+            after_context = params.after_context
+            print_with_context(before_context,after_context,all_lines) 
+
     for _,item in enumerate(passed_lines):
         output(passed_lines[item])           #Вывод строк
-    #output(passed_lines)
-    #output(all_lines)
-    #array_of_magic_numbers = [x for x in all_lines.keys]
-    #output(array_of_magic_numbers)
+
 
 
 
