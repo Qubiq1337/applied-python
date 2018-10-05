@@ -49,45 +49,52 @@ def grep(lines, params):
     if params.count == True:                      #Вывод только количества найденных строк
         output(str(len(passed_lines)))
     else:
+           
         if params.line_number == True:            #Если требуется добавляем номера строк перед строкой
             if params.context \
             or params.before_context \
-            or params.after_context > 0:
-                separator = '-'
+            or params.after_context > 0:                                           #Если есть context то меняем логику
+                for _,item in enumerate(all_lines):
+                    all_lines[item] =  \
+                    str(item) + '-' + all_lines[item]
+                for _,item in enumerate(passed_lines):
+                    passed_lines[item] =  \
+                    str(item) + separator + passed_lines[item]               
+            else:                                                                   #Иначе всем элементам ставим : перед номером 
+                for _,item in enumerate(all_lines):
+                    all_lines[item] =  \
+                    str(item) + separator + all_lines[item]
+                for _,item in enumerate(passed_lines):
+                    passed_lines[item] = \
+                    str(item) + separator + passed_lines[item]
 
-            for _,item in enumerate(passed_lines):
-                passed_lines[item] = \
-                str(item) + separator + passed_lines[item]
-                all_lines[item] =  \
-                str(item) + separator + all_lines[item]
-
-        elif params.context > 0:                                                            #C>0
+        if params.context > 0:                                                              #C>0
             if params.after_context == 0 and params.before_context == 0:                    #C>0
                 before_context = params.context
-                after_context = params.context
+                after_context = params.context 
             elif params.after_context != 0 and params.before_context == 0:                   #C>0,A>0
                 before_context = params.context
                 after_context = params.after_context
-            elif params.after_context != 0 and params.before_context == 0:                   #C>0,B>0
+            elif params.after_context == 0 and params.before_context != 0:                   #C>0,B>0
                 before_context = params.before_context
-                after_context = params.context            
+                after_context = params.context  
+            else:                                                                            #C>0,B>0,A>0 == b,a
+                before_context = params.before_context
+                after_context = params.after_context
+                print(before_context,after_context)                        
         elif params.context == 0:                                                           #C=0
-            if params.after_context != 0 and params.before_context == 0:                    #A>0
-                before_context = 0
-                after_context = params.after_context
-            elif params.after_context == 0 and params.before_context != 0:                   #B>0
-                before_context = params.before_context
-                after_context = 0
-            elif params.after_context != 0 and params.before_context != 0:                   #A>0,B>0
-                before_context = params.before_context
-                after_context = params.after_context
+            before_context = params.before_context
+            after_context = params.after_context            
+            print(before_context,after_context,passed_lines,passed_lines_inverted,all_lines)  
         else:
             for _,item in enumerate(passed_lines):
                 output(passed_lines[item])           #Вывод строк
-    output(passed_lines)
-    output(all_lines)
-    array_of_magic_numbers = [x for x in all_lines.keys]
-    output(array_of_magic_numbers)
+    for _,item in enumerate(passed_lines):
+        output(passed_lines[item])           #Вывод строк
+    #output(passed_lines)
+    #output(all_lines)
+    #array_of_magic_numbers = [x for x in all_lines.keys]
+    #output(array_of_magic_numbers)
 
 
 
