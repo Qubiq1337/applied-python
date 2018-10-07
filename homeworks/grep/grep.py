@@ -3,124 +3,116 @@ import sys
 import re
 import itertools
 
+
 def output(line):
     print(line)
 
-def print_with_context(before,after,all_lines,passed):
-    all_lines_keys=list(all_lines.keys())
-    passed_keys=list(passed.keys())    
-    array=[]
-    x=0
-    y=0
-    for i,_ in enumerate(passed_keys):
-        if passed_keys[i] - before - 1 < 0 :
+
+def print_with_context(before, after, all_lines, passed):
+    all_lines_keys = list(all_lines.keys())
+    passed_keys = list(passed.keys())
+    array = []
+    x = 0
+    y = 0
+    for i, _ in enumerate(passed_keys):
+        if passed_keys[i] - before - 1 < 0:
             x = 0
         else:
             x = passed_keys[i] - before - 1
         y = passed_keys[i] + after
         array.append(all_lines_keys[x:y])
     merged = list(set(itertools.chain(*array)))
-    array=[]
-    for _,item in enumerate(merged):
+    array = []
+    for _, item in enumerate(merged):
         array.append(all_lines[item])
-    for _,item in enumerate(array):
+    for _, item in enumerate(array):
         output(item)
-    
-
 
 
 def grep(lines, params):
-
-    regexp = params.pattern                       #Преобразование регулярки для использования пакета re
-    regexp = regexp.replace('?','.')
-    regexp = regexp.replace('*','.*')
-
-    lines = [x.strip() for x in lines]            #Входные строки
-    passed_lines = {}                             #Строки прошедшие проверку
-    passed_lines_inverted = {}                    #Строки _НЕ_ прошедшие проверку
+    lines = [x.strip() for x in lines]            # Входные строки
+    passed_lines = {}                             # Строки прошедшие проверку
+    passed_lines_inverted = {}               # Строки _НЕ_ прошедшие проверку
     all_lines = {}
-    for i,item in enumerate(lines,1):
+    reg_expr = params.pattern                       # Преобразование регулярки
+    reg_expr = reg_expr.replace('?', '.')
+    reg_expr = reg_expr.replace('*', '.*')
+    for i, item in enumerate(lines, 1):
         passed_lines[i] = item
-        passed_lines_inverted[i] = item           #Заполняем словарь - ключ это номер строки с 1, значение это сама строка.
-        all_lines[i] = item                       #Сохраняем все строки для context
+        passed_lines_inverted[i] = item           # Заполняем словарь
+        all_lines[i] = item                  # Сохраняем все строки для context
 
     i = 1
-    for line in lines:                            #Поиск по регулярке подходящих строк
-        if params.ignore_case == True:            #Проверка на независимость от регистра
+    for line in lines:                    # Поиск по регулярке подходящих строк
+        if params.ignore_case is True:    
             line = line.lower()
-            regexp = regexp.lower()
-            if re.search(regexp,line) is None:    #Если не совпадает с регуляркой то удаляем или оставляем для ключа invert
+            reg_expr = reg_expr.lower()
+            if re.search(reg_expr, line) is None:    # Если не совпадает с регуляркой то удаляем или оставляем для ключа invert
                 del(passed_lines[i])
             else:
                 del(passed_lines_inverted[i])
         else:
-            if re.search(regexp,line) is None:
+            if re.search(reg_expr, line) is None:
                 del(passed_lines[i])
             else:
                 del(passed_lines_inverted[i])
         i += 1
 
-    if params.invert == True:                     #Инверсия результатов если нужно
+    if params.invert is True:                     # Инверсия результатов если нужно
         passed_lines = passed_lines_inverted
 
     separator = ':'
     before_context = 0
     after_context = 0
 
-    if params.count == True:                      #Вывод только количества найденных строк
+    if params.count is True:                      # Вывод только количества найденных строк
         output(str(len(passed_lines)))
     else:
-        if params.line_number == True:            #Если требуется добавляем номера строк перед строкой
+        if params.line_number is True:            # Если требуется добавляем номера строк перед строкой
             if params.context \
-            or params.before_context \
-            or params.after_context > 0:                                           #Если есть context то меняем логику
-                for _,item in enumerate(all_lines):
+                or params.before_context \
+                    or params.after_context > 0:                                           # Если есть context то меняем логику
+                for _, item in enumerate(all_lines):
                     if all_lines[item] in passed_lines.values():
-                        all_lines[item] = str(item) + ':' + all_lines[item]     
+                        all_lines[item] = str(item) + ':' + all_lines[item]
                     else:
                         all_lines[item] = str(item) + '-' + all_lines[item]
-                for _,item in enumerate(passed_lines):
+                for _, item in enumerate(passed_lines):
                     passed_lines[item] =  \
-                    str(item) + separator + passed_lines[item]               
-            else:                                                                   #Иначе всем элементам ставим : перед номером 
-                for _,item in enumerate(all_lines):
+                        str(item) + separator + passed_lines[item]
+            else:               # Иначе всем элементам ставим : перед номером
+                for _, item in enumerate(all_lines):
                     all_lines[item] =  \
-                    str(item) + separator + all_lines[item]
-                for _,item in enumerate(passed_lines):
+                        str(item) + separator + all_lines[item]
+                for _, item in enumerate(passed_lines):
                     passed_lines[item] = \
-                    str(item) + separator + passed_lines[item]
+                        str(item) + separator + passed_lines[item]
 
-        if params.context > 0:                                                              #C>0
-            if params.after_context == 0 and params.before_context == 0:                    #C>0
+        if params.context > 0:                                            # C>0
+            if params.after_context == 0 and params.before_context == 0:  # C>0
                 before_context = params.context
-                after_context = params.context 
-            elif params.after_context != 0 and params.before_context == 0:                   #C>0,A>0
+                after_context = params.context
+            elif params.after_context != 0 and params.before_context == 0:   # C>0,A>0
                 before_context = params.context
                 after_context = params.after_context
-            elif params.after_context == 0 and params.before_context != 0:                   #C>0,B>0
+            elif params.after_context == 0 and params.before_context != 0:   # C>0,B>0
                 before_context = params.before_context
-                after_context = params.context  
-            else:                                                                            #C>0,B>0,A>0 == b,a
+                after_context = params.context
+            else:                                        # C>0,B>0,A>0 == b,a
                 before_context = params.before_context
                 after_context = params.after_context
-            print_with_context(before_context,after_context,all_lines,passed_lines)
-                                    
+            print_with_context(before_context, after_context, all_lines, passed_lines)
+
         elif params.context == 0:
-            if params.before_context > 0 or params.after_context > 0:                                                           #C=0
+            if params.before_context > 0 or params.after_context > 0:       # C=0
                 before_context = params.before_context
                 after_context = params.after_context
-                print_with_context(before_context,after_context,all_lines,passed_lines)
-            else: 
-                for _,item in enumerate(passed_lines):
-                    output(passed_lines[item])           #Вывод строк
-                
+                print_with_context(before_context, after_context, all_lines, passed_lines)
+            else:
+                for _, item in enumerate(passed_lines):
+                    output(passed_lines[item])           # Вывод строк
 
 
-
-
-
-
-#------------------------------------------------------------------
 def parse_args(args):
     parser = argparse.ArgumentParser(description='This is a simple grep on python')
     parser.add_argument(
