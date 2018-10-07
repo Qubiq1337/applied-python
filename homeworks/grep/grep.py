@@ -30,21 +30,10 @@ def print_with_context(before, after, all_lines, passed):
         output(item)
 
 
-def grep(lines, params):
-    lines = [x.rstrip() for x in lines]            # Входные строки
-    matched_lines = {}                             # Строки прошедшие проверку
-    matched_lines_inverted = {}               # Строки _НЕ_ прошедшие проверку
-    all_lines = {}
-    reg_expr = params.pattern                       # Преобразование регулярки
-    reg_expr = reg_expr.replace('?', '.')
-    reg_expr = reg_expr.replace('*', '.*')
-    for i, item in enumerate(lines, 1):
-        matched_lines[i] = item  # Заполняем словарь
-
-    matched_lines_inverted = copy.deepcopy(matched_lines)
-    all_lines = copy.deepcopy(matched_lines)  # Сохраняем все строки для context
+# Поиск по регулярке подходящих строк
+def find_by_regexp(lines, params, reg_expr):
     i = 1
-    for line in lines:                    # Поиск по регулярке подходящих строк
+    for line in lines:
         if params.ignore_case is True:
             line = line.lower()
             reg_expr = reg_expr.lower()
@@ -59,17 +48,10 @@ def grep(lines, params):
                 del(matched_lines_inverted[i])
         i += 1
 
-    if params.invert is True:            # Инверсия результатов если нужно
-        matched_lines = matched_lines_inverted
 
+def add_numbers(params):
     separator = ':'
-    before_context = 0
-    after_context = 0
-
-    if params.count is True:      # Вывод только количества найденных строк
-        output(str(len(matched_lines)))
-        return
-    if params.line_number is True:     # Если требуется, добавляем номер
+    if params.line_number is True:     
         if params.context \
             or params.before_context \
                 or params.after_context > 0:
@@ -88,6 +70,10 @@ def grep(lines, params):
                 matched_lines[item] = \
                     str(item) + separator + matched_lines[item]
 
+
+def print_strings(params):
+    before_context = 0
+    after_context = 0
     if params.context > 0:                                            # C>0
         if params.after_context == 0 and params.before_context == 0:  # C>0
             before_context = params.context
@@ -112,6 +98,37 @@ def grep(lines, params):
             return
         for item in matched_lines:
             output(matched_lines[item])         # Вывод строк
+
+
+def grep(lines, params):
+    lines = [x.rstrip() for x in lines]            # Входные строки
+    global matched_lines              # Строки прошедшие проверку
+    global matched_lines_inverted     # Строки _НЕ_ прошедшие проверку
+    global all_lines
+    matched_lines = {}
+    matched_lines_inverted = {}
+    all_lines = {}
+
+    reg_expr = params.pattern                       # Преобразование регулярки
+    reg_expr = reg_expr.replace('?', '.')
+    reg_expr = reg_expr.replace('*', '.*')
+
+    for i, item in enumerate(lines, 1):
+        all_lines[i] = item  # Заполняем словарь
+    matched_lines_inverted = copy.deepcopy(all_lines)
+    matched_lines = copy.deepcopy(all_lines)
+
+    find_by_regexp(lines, params, reg_expr)
+
+    if params.invert is True:            # Инверсия результатов если нужно
+        matched_lines = matched_lines_inverted
+
+    if params.count is True:      # Вывод только количества найденных строк
+        output(str(len(matched_lines)))
+        return
+
+    add_numbers(params)
+    print_strings(params)
 
 
 def parse_args(args):
