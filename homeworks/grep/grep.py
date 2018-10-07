@@ -1,14 +1,31 @@
-
 import argparse
 import sys
 import re
-
+import itertools
 
 def output(line):
     print(line)
 
-def print_with_context(before,after,all_lines):
-    print(before,after,all_lines)
+def print_with_context(before,after,all_lines,passed):
+    all_lines_keys=list(all_lines.keys())
+    passed_keys=list(passed.keys())    
+    array=[]
+    x=0
+    y=0
+    for i,_ in enumerate(passed_keys):
+        if passed_keys[i] - before - 1 < 0 :
+            x = 0
+        else:
+            x = passed_keys[i] - before - 1
+        y = passed_keys[i] + after
+        array.append(all_lines_keys[x:y])
+    merged = list(set(itertools.chain(*array)))
+    array=[]
+    for _,item in enumerate(merged):
+        array.append(all_lines[item])
+    for _,item in enumerate(array):
+        output(item)
+    
 
 
 
@@ -53,7 +70,6 @@ def grep(lines, params):
     if params.count == True:                      #Вывод только количества найденных строк
         output(str(len(passed_lines)))
     else:
-           
         if params.line_number == True:            #Если требуется добавляем номера строк перед строкой
             if params.context \
             or params.before_context \
@@ -87,15 +103,19 @@ def grep(lines, params):
             else:                                                                            #C>0,B>0,A>0 == b,a
                 before_context = params.before_context
                 after_context = params.after_context
-            print_with_context(before_context,after_context,all_lines) 
+            print_with_context(before_context,after_context,all_lines,passed_lines)
                                     
-        elif params.context == 0:                                                           #C=0
-            before_context = params.before_context
-            after_context = params.after_context
-            print_with_context(before_context,after_context,all_lines) 
+        elif params.context == 0:
+            if params.before_context > 0 or params.after_context > 0:                                                           #C=0
+                before_context = params.before_context
+                after_context = params.after_context
+                print_with_context(before_context,after_context,all_lines,passed_lines)
+            else: 
+                for _,item in enumerate(passed_lines):
+                    output(passed_lines[item])           #Вывод строк
+                
 
-    for _,item in enumerate(passed_lines):
-        output(passed_lines[item])           #Вывод строк
+
 
 
 
