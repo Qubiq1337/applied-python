@@ -2,6 +2,7 @@ import argparse
 import sys
 import re
 import itertools
+import copy
 
 
 def output(line):
@@ -23,94 +24,94 @@ def print_with_context(before, after, all_lines, passed):
         array.append(all_lines_keys[x:y])
     merged = list(set(itertools.chain(*array)))
     array = []
-    for _, item in enumerate(merged):
+    for item in merged:
         array.append(all_lines[item])
-    for _, item in enumerate(array):
+    for item in array:
         output(item)
 
 
 def grep(lines, params):
-    lines = [x.strip() for x in lines]            # Входные строки
-    passed_lines = {}                             # Строки прошедшие проверку
-    passed_lines_inverted = {}               # Строки _НЕ_ прошедшие проверку
+    lines = [x.rstrip() for x in lines]            # Входные строки
+    matched_lines = {}                             # Строки прошедшие проверку
+    matched_lines_inverted = {}               # Строки _НЕ_ прошедшие проверку
     all_lines = {}
     reg_expr = params.pattern                       # Преобразование регулярки
     reg_expr = reg_expr.replace('?', '.')
     reg_expr = reg_expr.replace('*', '.*')
     for i, item in enumerate(lines, 1):
-        passed_lines[i] = item
-        passed_lines_inverted[i] = item           # Заполняем словарь
-        all_lines[i] = item                  # Сохраняем все строки для context
+        matched_lines[i] = item  # Заполняем словарь
 
+    matched_lines_inverted = copy.deepcopy(matched_lines)
+    all_lines = copy.deepcopy(matched_lines)  # Сохраняем все строки для context
     i = 1
     for line in lines:                    # Поиск по регулярке подходящих строк
-        if params.ignore_case is True:    
+        if params.ignore_case is True:
             line = line.lower()
             reg_expr = reg_expr.lower()
-            if re.search(reg_expr, line) is None:    # Если не совпадает с регуляркой то удаляем или оставляем для ключа invert
-                del(passed_lines[i])
+            if re.search(reg_expr, line) is None:    # Если не совпадает с
+                del(matched_lines[i])            # регуляркой то удаляем
             else:
-                del(passed_lines_inverted[i])
+                del(matched_lines_inverted[i])   # или оставляем для invert
         else:
             if re.search(reg_expr, line) is None:
-                del(passed_lines[i])
+                del(matched_lines[i])
             else:
-                del(passed_lines_inverted[i])
+                del(matched_lines_inverted[i])
         i += 1
 
-    if params.invert is True:                     # Инверсия результатов если нужно
-        passed_lines = passed_lines_inverted
+    if params.invert is True:            # Инверсия результатов если нужно
+        matched_lines = matched_lines_inverted
 
     separator = ':'
     before_context = 0
     after_context = 0
 
-    if params.count is True:                      # Вывод только количества найденных строк
-        output(str(len(passed_lines)))
-    else:
-        if params.line_number is True:            # Если требуется добавляем номера строк перед строкой
-            if params.context \
-                or params.before_context \
-                    or params.after_context > 0:                                           # Если есть context то меняем логику
-                for _, item in enumerate(all_lines):
-                    if all_lines[item] in passed_lines.values():
-                        all_lines[item] = str(item) + ':' + all_lines[item]
-                    else:
-                        all_lines[item] = str(item) + '-' + all_lines[item]
-                for _, item in enumerate(passed_lines):
-                    passed_lines[item] =  \
-                        str(item) + separator + passed_lines[item]
-            else:               # Иначе всем элементам ставим : перед номером
-                for _, item in enumerate(all_lines):
-                    all_lines[item] =  \
-                        str(item) + separator + all_lines[item]
-                for _, item in enumerate(passed_lines):
-                    passed_lines[item] = \
-                        str(item) + separator + passed_lines[item]
+    if params.count is True:      # Вывод только количества найденных строк
+        output(str(len(matched_lines)))
+        return
+    if params.line_number is True:     # Если требуется, добавляем номер
+        if params.context \
+            or params.before_context \
+                or params.after_context > 0:
+            for item in all_lines:
+                if all_lines[item] in matched_lines.values():
+                    all_lines[item] = '{}{}{}'.format(str(item), separator, all_lines[item])
+                else:
+                    all_lines[item] = '{}-{}'.format(str(item), all_lines[item])
+            for item in matched_lines:
+                matched_lines[item] = '{}{}{}'.format(str(item), separator, matched_lines[item])
+        else:               # Иначе всем элементам ставим : перед номером
+            for item in all_lines:
+                all_lines[item] =  \
+                    str(item) + separator + all_lines[item]
+            for item in matched_lines:
+                matched_lines[item] = \
+                    str(item) + separator + matched_lines[item]
 
-        if params.context > 0:                                            # C>0
-            if params.after_context == 0 and params.before_context == 0:  # C>0
-                before_context = params.context
-                after_context = params.context
-            elif params.after_context != 0 and params.before_context == 0:   # C>0,A>0
-                before_context = params.context
-                after_context = params.after_context
-            elif params.after_context == 0 and params.before_context != 0:   # C>0,B>0
-                before_context = params.before_context
-                after_context = params.context
-            else:                                        # C>0,B>0,A>0 == b,a
-                before_context = params.before_context
-                after_context = params.after_context
-            print_with_context(before_context, after_context, all_lines, passed_lines)
+    if params.context > 0:                                            # C>0
+        if params.after_context == 0 and params.before_context == 0:  # C>0
+            before_context = params.context
+            after_context = params.context
+        elif params.after_context != 0 and params.before_context == 0:
+            before_context = params.context                     # C>0,A>0
+            after_context = params.after_context
+        elif params.after_context == 0 and params.before_context != 0:
+            before_context = params.before_context              # C>0,B>0
+            after_context = params.context
+        else:                                        # C>0,B>0,A>0 == b,a
+            before_context = params.before_context
+            after_context = params.after_context
+        print_with_context(before_context, after_context, all_lines, matched_lines)
+        return
 
-        elif params.context == 0:
-            if params.before_context > 0 or params.after_context > 0:       # C=0
-                before_context = params.before_context
-                after_context = params.after_context
-                print_with_context(before_context, after_context, all_lines, passed_lines)
-            else:
-                for _, item in enumerate(passed_lines):
-                    output(passed_lines[item])           # Вывод строк
+    if params.context == 0:       # C=0
+        if params.before_context > 0 or params.after_context > 0:
+            before_context = params.before_context
+            after_context = params.after_context
+            print_with_context(before_context, after_context, all_lines, matched_lines)
+            return
+        for item in matched_lines:
+            output(matched_lines[item])         # Вывод строк
 
 
 def parse_args(args):
